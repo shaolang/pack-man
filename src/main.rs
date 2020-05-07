@@ -18,7 +18,9 @@ fn main() {
 
 fn determine_io_filenames() -> (String, String) {
     let mut args = env::args();
-    let iname = &args.next().unwrap();
+    args.next().expect("Unable to determine executable's name");
+
+    let iname = &args.next().expect("Please specify the input PS file.");
     let oname = if let Some(v) = args.next() {
         v
     } else {
@@ -36,6 +38,8 @@ fn pack(input: &Vec<&str>) -> Vec<String> {
     let mut result: Vec<String> = Vec::new();
 
     for v in input {
+        let v = v.trim_end();
+
         if !start_matching {
             if v.starts_with("%%Page: ") {
                 start_matching = true;
