@@ -1,9 +1,32 @@
+use std::env;
+use std::fs::File;
+use std::io::{Read, Write};
 use regex::Regex;
 
 fn main() {
-    println!("Hello, World!");
+    let (iname, oname) = determine_io_filenames();
+    let s = read_from_file(&iname);
+    let input: Vec<&str> = s.split_terminator('\n').collect();
+
+    let packed = pack(&input).join("\n");
+
+    write_to_file(&oname, &packed);
 }
 
+// helper functions
+///////////////////
+
+fn determine_io_filenames() -> (String, String) {
+    let mut args = env::args();
+    let iname = &args.next().unwrap();
+    let oname = if let Some(v) = args.next() {
+        v
+    } else {
+        format!("packed-{}", iname.clone())
+    };
+
+    (iname.to_string(), oname.to_string())
+}
 
 fn pack(input: &Vec<&str>) -> Vec<String> {
     let mut s = String::new();
@@ -43,6 +66,26 @@ fn pack(input: &Vec<&str>) -> Vec<String> {
     return result;
 }
 
+
+fn read_from_file(fname: &str) -> String {
+    let mut fin = File::open(fname)
+        .expect(&format!("Unable to open {}", fname));
+    let mut content = String::new();
+    fin.read_to_string(&mut content).unwrap();
+
+    return content;
+}
+
+
+fn write_to_file(fname: &str, content: &str) {
+    let mut fout = File::create(fname)
+        .expect(&format!("Unable to create {}", fname));
+    write!(&mut fout, "{}", content)
+        .expect(&format!("Unable to write to {}", fname));
+}
+
+// tests
+////////
 
 #[test]
 fn pack_leaves_stuff_before_first_page_intact() {
