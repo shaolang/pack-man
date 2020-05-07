@@ -43,7 +43,7 @@ use the name of the source file with `.ps` as the dest file name.
 
 Then invoke pack-man as follows:
 
-    $ java -jar pack-man-0.1.0-standalone.jar src [dest]
+    $ pack-man src [dest]
 
 Where `src` is the name of the generated Postscript file, and optionally
 `dest` is the name of the packed file, or pack-man prepend the `src`
@@ -57,9 +57,14 @@ Postscript file to PDF:
 where `src` is the name of the amended Postscript file, and `dest` is the
 optional dest file name.
 
+## Genesis
+
+I wrote the original version in Clojure; if you refer to use that version
+instead, use the commit tagged 0.1.0.
+
 ## License
 
-Copyright © 2016 Shaolang Ai
+Copyright © 2016 - 2020 Shaolang Ai
 
 Distributed under the MIT License
 
