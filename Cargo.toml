@@ -2,6 +2,7 @@
 name="pack-man"
 version="0.2.0"
 authors=["shaolang"]
+edition = "2018"
 
 [dependencies]
-regex = "0.1.75"
+regex = "~1.3"
