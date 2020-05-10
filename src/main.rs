@@ -1,7 +1,7 @@
+use regex::Regex;
 use std::env;
 use std::fs::File;
 use std::io::{Read, Write};
-use regex::Regex;
 
 fn main() {
     let (iname, oname) = determine_io_filenames();
@@ -27,10 +27,10 @@ fn determine_io_filenames() -> (String, String) {
         format!("packed-{}", iname.clone())
     };
 
-    (iname.to_string(), oname.to_string())
+    (iname.to_string(), oname)
 }
 
-fn pack(input: &Vec<&str>) -> Vec<String> {
+fn pack(input: &[&str]) -> Vec<String> {
     let mut s = String::new();
     let ignore_re = Regex::new(r"^\[.*\].+$|^\[/.+$").unwrap();
     let close_bracket_re = Regex::new(r"^[^\[]+].+$").unwrap();
@@ -67,79 +67,114 @@ fn pack(input: &Vec<&str>) -> Vec<String> {
         result.push(s);
     }
 
-    return result;
+    result
 }
 
-
 fn read_from_file(fname: &str) -> String {
-    let mut fin = File::open(fname)
-        .expect(&format!("Unable to open {}", fname));
+    let mut fin = File::open(fname).unwrap_or_else(|_| panic!("Unable to open {}", fname));
     let mut content = String::new();
     fin.read_to_string(&mut content).unwrap();
 
-    return content;
+    content
 }
-
 
 fn write_to_file(fname: &str, content: &str) {
-    let mut fout = File::create(fname)
-        .expect(&format!("Unable to create {}", fname));
-    write!(&mut fout, "{}", content)
-        .expect(&format!("Unable to write to {}", fname));
+    let mut fout = File::create(fname).unwrap_or_else(|_| panic!("Unable to create {}", fname));
+    write!(&mut fout, "{}", content).unwrap_or_else(|_| panic!("Unable to write to {}", fname));
 }
 
-// tests
-////////
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn pack_leaves_stuff_before_first_page_intact() {
+        let input = vec![
+            "prelude",
+            "[leave",
+            "them",
+            "intact]",
+            "%%Page: x x",
+            "[0",
+            "1] Td",
+        ];
+        let output = vec![
+            "prelude",
+            "[leave",
+            "them",
+            "intact]",
+            "%%Page: x x",
+            "[0 1] Td",
+        ];
 
-#[test]
-fn pack_leaves_stuff_before_first_page_intact() {
-    let input  = vec!("prelude", "[leave", "them", "intact]", "%%Page: x x",
-                     "[0", "1] Td");
-    let output = vec!("prelude", "[leave", "them", "intact]", "%%Page: x x",
-                      "[0 1] Td");
+        assert_eq!(super::pack(&input), output);
+    }
 
-    assert_eq!(pack(&input), output);
-}
+    #[test]
+    fn pack_joins_double_digit_numbers_in_brackets() {
+        let input = vec![
+            "whatever",
+            "%%Page: y y",
+            "(a postscript string)",
+            "[12",
+            "11] TJ",
+        ];
+        let output = vec![
+            "whatever",
+            "%%Page: y y",
+            "(a postscript string) [12 11] TJ",
+        ];
 
-#[test]
-fn pack_joins_double_digit_numbers_in_brackets() {
-    let input  = vec!("whatever", "%%Page: y y",
-                      "(a postscript string)", "[12", "11] TJ");
-    let output = vec!("whatever", "%%Page: y y",
-                      "(a postscript string) [12 11] TJ");
+        assert_eq!(super::pack(&input), output);
+    }
 
-    assert_eq!(pack(&input), output);
-}
+    #[test]
+    fn pack_joins_triple_digit_numbers_in_brackets() {
+        let input = vec![
+            "%%Page: x x",
+            "%%EndPageSetup",
+            "[] 0 d",
+            "1 i",
+            "/DeviceGray {} cs",
+            "[123",
+            "234] Td]",
+        ];
+        let output = vec![
+            "%%Page: x x",
+            "%%EndPageSetup",
+            "[] 0 d",
+            "1 i",
+            "/DeviceGray {} cs",
+            "[123 234] Td]",
+        ];
 
-#[test]
-fn pack_joins_triple_digit_numbers_in_brackets() {
-    let input  = vec!("%%Page: x x", "%%EndPageSetup", "[] 0 d",
-                      "1 i", "/DeviceGray {} cs", "[123", "234] Td]");
-    let output = vec!("%%Page: x x", "%%EndPageSetup", "[] 0 d",
-                      "1 i", "/DeviceGray {} cs", "[123 234] Td]");
+        assert_eq!(super::pack(&input), output);
+    }
 
-    assert_eq!(pack(&input), output);
-}
+    #[test]
+    fn pack_leaves_stuff_intact_when_first_item_in_open_bracket_is_non_numeric() {
+        let input = vec!["%%Page: x x", "[/Indexed <", " 000", ">] something"];
 
-#[test]
-fn pack_leaves_stuff_intact_when_first_item_in_open_bracket_is_non_numeric() {
-    let input  = vec!("%%Page: x x", "[/Indexed <", " 000", ">] something");
+        assert_eq!(super::pack(&input), input);
+    }
 
-    assert_eq!(pack(&input), input);
-}
+    #[test]
+    fn pack_joins_strings_in_parentheses() {
+        let input = vec![
+            "%%Page: xyz xyz",
+            r"(a post\",
+            r"script \",
+            "string)",
+            "[0",
+            "1] TJ",
+        ];
+        let output = vec!["%%Page: xyz xyz", r"(a postscript string) [0 1] TJ"];
 
-#[test]
-fn pack_joins_strings_in_parentheses() {
-    let input  = vec!("%%Page: xyz xyz", r"(a post\", r"script \", "string)",
-                      "[0", "1] TJ");
-    let output = vec!("%%Page: xyz xyz", r"(a postscript string) [0 1] TJ");
+        assert_eq!(super::pack(&input), output);
+    }
 
-    assert_eq!(pack(&input), output);
-}
+    #[test]
+    fn pack_leaves_things_intact_when_there_are_no_brackets_or_parentheses() {
+        let input = vec!["%%Page: x x", "0 0 cm"];
 
-#[test]
-fn pack_leaves_things_intact_when_there_are_no_brackets_or_parentheses() {
-    let input = vec!("%%Page: x x", "0 0 cm");
-
-    assert_eq!(pack(&input), input);
+        assert_eq!(super::pack(&input), input);
+    }
 }
