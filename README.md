@@ -1,4 +1,4 @@
-# pack-man
+# pack-man [![Build Status](https://travis-ci.org/shaolang/pack-man.png)](https://travis-ci.org/shaolang/pack-man)
 
 pack-man is a command-line tool that packs the Postscript file generated
 by [PDFtk][pdftk] or [Ghostscript][gs] for easier deciphering.
