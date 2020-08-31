@@ -64,7 +64,7 @@ instead, use the commit tagged 0.1.0.
 
 ## License
 
-Copyright © 2016 - 2020 Shaolang Ai
+Copyright © 2016 Shaolang Ai
 
 Distributed under the MIT License
 
